@@ -25,7 +25,7 @@ io.on("connection", (socket) => {
     // Join room event
     socket.on("join-room", ({ username, room }) => {
         // Check if room is full
-        const playersInRoom = getPlayersInRoom(room);
+        let playersInRoom = getPlayersInRoom(room);
         if (playersInRoom.length >= 2) {
             // If room is full, let user know
             socket.emit("join-room-error", "Room is full");
@@ -45,26 +45,30 @@ io.on("connection", (socket) => {
             return;
         }
 
-        // Add player to players array
+        // Set symbol to X if there is no player in the room yet, else set to O
         const symbol =
             playersInRoom[0] && playersInRoom[0].symbol === "X" ? "O" : "X";
-        addPlayer({ id: socket.id, username, room, symbol });
 
-        // Set initial turn to whoever joined first
+        // Add player to players array & join room
+        addPlayer({ id: socket.id, username, room, symbol });
+        socket.join(room);
+
+        // Update playersInRoom array
+        playersInRoom = getPlayersInRoom(room);
+
+        // Tell the user and everyone in the room that a user has joined
+        socket.emit("joined", { username, room, symbol });
+        socket.to(room).emit("player-joined", username);
+
+        // Send the users in the room to the client
+        io.to(room).emit("users-count", playersInRoom);
+
+        // Set initial turn to whoever joined first & send it to the client
         const turn =
             playersInRoom.length === 0 ? username : playersInRoom[0].username;
         io.to(room).emit("turn", turn);
 
-        // Join room & Tell the client that he has joined the room
-        socket.join(room);
-        socket.emit("joined", { username, room, symbol });
-
-        // Tell the other player that someone has joined the room
-        socket.to(room).emit("player-joined", username);
-
-        // Tell everyone in the room how many players are in the room
-        const users = getPlayersInRoom(room);
-        io.to(room).emit("users-count", users);
+        console.log(`Room: ${room} | Players: ${playersInRoom.length}`);
     });
 
     // Update board event
@@ -83,6 +87,12 @@ io.on("connection", (socket) => {
             ).username;
 
             io.to(room).emit("winner", winnerUsername);
+
+            // if A was the one started the game, then B will start the next game
+            const nextTurn = playersInRoom.find(
+                (player) => player.symbol !== winner
+            ).username;
+            io.to(room).emit("turn", nextTurn);
             return;
         }
 
@@ -91,6 +101,12 @@ io.on("connection", (socket) => {
         if (draw) {
             // Send draw event to everyone in the room
             io.to(room).emit("draw");
+
+            // if A was the one started the game, then B will start the next game
+            const nextTurn = playersInRoom.find(
+                (player) => player.symbol !== symbol
+            ).username;
+            io.to(room).emit("turn", nextTurn);
             return;
         }
 
@@ -134,12 +150,18 @@ io.on("connection", (socket) => {
         // Tell everyone in the room how many players are in the room
         const users = getPlayersInRoom(room);
         io.to(room).emit("users-count", users);
+
+        console.log(`Room: ${room} | Players: ${users.length}`);
     });
 
     // Disconnect event
     socket.on("disconnect", () => {
         removePlayer(socket.id);
         console.log("A user disconnected");
+    });
+
+    socket.on("send-message", ({ username, message, room, timestamp }) => {
+        io.to(room).emit("new-message", { username, message, timestamp });
     });
 });
 
