@@ -2,7 +2,8 @@
 const players = [];
 
 const getPlayersInRoom = (room) => {
-    return players.filter((player) => player.room === room);
+    const playersInRoom = players.filter((player) => player.room === room);
+    return playersInRoom;
 };
 
 const addPlayer = ({ id, username, room, symbol }) => {

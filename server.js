@@ -24,10 +24,16 @@ io.on("connection", (socket) => {
 
     // Join room event
     socket.on("join-room", ({ username, room }) => {
+        console.log(`${username} trying to join room ${room}`);
         // Check if room is full
         let playersInRoom = getPlayersInRoom(room);
-        if (playersInRoom.length >= 2) {
-            // If room is full, let user know
+
+        console.log("There are " + playersInRoom.length + " players in room");
+        if (playersInRoom.length === 2) {
+            playersInRoom.forEach((player) => {
+                console.log(player.username);
+            });
+            console.log("Room is full");
             socket.emit("join-room-error", "Room is full");
             return;
         }
@@ -38,6 +44,7 @@ io.on("connection", (socket) => {
             )
         ) {
             // If username is already taken, let user know
+            console.log("Username is already taken");
             socket.emit(
                 "join-room-error",
                 "This username is in use in the entered room"
@@ -51,10 +58,13 @@ io.on("connection", (socket) => {
 
         // Add player to players array & join room
         addPlayer({ id: socket.id, username, room, symbol });
+
         socket.join(room);
+        console.log(`${username} joined room ${room}`);
 
         // Update playersInRoom array
         playersInRoom = getPlayersInRoom(room);
+        console.log("There are " + playersInRoom.length + " players in room");
 
         // Tell the user and everyone in the room that a user has joined
         socket.emit("joined", { username, room, symbol });
@@ -66,6 +76,7 @@ io.on("connection", (socket) => {
         // Set initial turn to whoever joined first & send it to the client
         const turn =
             playersInRoom.length === 0 ? username : playersInRoom[0].username;
+        console.log(`${turn} will start the game`);
         io.to(room).emit("turn", turn);
 
         console.log(`Room: ${room} | Players: ${playersInRoom.length}`);
