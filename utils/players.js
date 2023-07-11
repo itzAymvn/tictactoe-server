@@ -6,8 +6,8 @@ const getPlayersInRoom = (room) => {
     return playersInRoom;
 };
 
-const addPlayer = ({ id, username, room, symbol }) => {
-    players.push({ id, username, room, symbol });
+const addPlayer = ({ id, username, room, symbol, score }) => {
+    players.push({ id, username, room, symbol, score });
 };
 
 const removePlayer = (id) => {

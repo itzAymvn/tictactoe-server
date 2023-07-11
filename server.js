@@ -92,12 +92,16 @@ io.on("connection", (socket) => {
         // Check if there is a winner
         const winner = checkWinner(board);
         if (winner) {
-            // Get username of the winner
-            const winnerUsername = playersInRoom.find(
+            // Get winner
+            const winnerPlayer = playersInRoom.find(
                 (player) => player.symbol === winner
-            ).username;
+            );
 
-            io.to(room).emit("winner", winnerUsername);
+            // Update score
+            winnerPlayer.score++;
+
+            // Send winner event to everyone in the room
+            io.to(room).emit("winner", winnerPlayer);
 
             // if A was the one started the game, then B will start the next game
             const nextTurn = playersInRoom.find(
@@ -139,7 +143,14 @@ io.on("connection", (socket) => {
     });
 
     // Restart game declined event
-    socket.on("restart-game-declined", ({ username, room }) => {
+    socket.on("restart-game-declined", ({ username, room, board }) => {
+        // Check if there is a winner
+        const winner = checkWinner(board);
+        if (winner) {
+            // End game
+            io.to(room).emit("end-game");
+            return;
+        }
         // Tell the other player that someone has declined to restart the game
         socket.to(room).emit("restart-game-declined", username);
     });
