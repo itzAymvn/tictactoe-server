@@ -59,12 +59,12 @@ io.on("connection", (socket) => {
         // Add player to players array & join room
         addPlayer({ id: socket.id, username, room, symbol });
 
-        socket.join(room);
-        console.log(`${username} joined room ${room}`);
-
         // Update playersInRoom array
         playersInRoom = getPlayersInRoom(room);
         console.log("There are " + playersInRoom.length + " players in room");
+
+        socket.join(room);
+        console.log(`${username} joined room ${room}`);
 
         // Tell the user and everyone in the room that a user has joined
         socket.emit("joined", { username, room, symbol });
@@ -171,15 +171,28 @@ io.on("connection", (socket) => {
         console.log("A user disconnected");
     });
 
+    // Typing event
+    socket.on("typing", ({ username, room }) => {
+        socket.to(room).emit("typing", username);
+    });
+
+    // Stop typing event
+    socket.on("typing-stop", ({ room }) => {
+        socket.to(room).emit("typing-stop");
+    });
+
+    // New message event
     socket.on("send-message", ({ username, message, room, timestamp }) => {
         io.to(room).emit("new-message", { username, message, timestamp });
     });
 });
 
+// Routes
 app.get("/", (req, res) => {
     res.send("Server is running");
 });
 
+// Start server
 server.listen(3001, () => {
     console.log("[HTTP] http://localhost:3001");
     console.log("[WS] ws://localhost:3001");
