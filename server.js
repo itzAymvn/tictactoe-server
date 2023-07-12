@@ -6,6 +6,7 @@ const {
     getPlayersInRoom,
     getPlayer,
     removePlayer,
+    getRooms,
 } = require("./utils/players");
 
 const { checkWinner, checkDraw } = require("./utils/game");
@@ -78,6 +79,10 @@ io.on("connection", (socket) => {
             playersInRoom.length === 0 ? username : playersInRoom[0].username;
         console.log(`${turn} will start the game`);
         io.to(room).emit("turn", turn);
+
+        // Send rooms to the client
+        const rooms = getRooms();
+        io.emit("rooms", rooms);
 
         console.log(`Room: ${room} | Players: ${playersInRoom.length}`);
     });
@@ -173,6 +178,10 @@ io.on("connection", (socket) => {
         const users = getPlayersInRoom(room);
         io.to(room).emit("users-count", users);
 
+        // Update the list of rooms
+        const rooms = getRooms();
+        io.emit("rooms", rooms);
+
         console.log(`Room: ${room} | Players: ${users.length}`);
     });
 
@@ -195,6 +204,12 @@ io.on("connection", (socket) => {
     // New message event
     socket.on("send-message", ({ username, message, room, timestamp }) => {
         io.to(room).emit("new-message", { username, message, timestamp });
+    });
+
+    // List rooms event
+    socket.on("list-rooms", () => {
+        const rooms = getRooms();
+        socket.emit("rooms", rooms);
     });
 });
 
